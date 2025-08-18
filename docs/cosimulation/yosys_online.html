@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+
+</html>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yosys Online Playground</title>
+    <style>
+        body {
+            font: 14px/1.4 system-ui, sans-serif;
+            max-width: 960px;
+            margin: 24px auto;
+            padding: 0 12px;
+        }
+
+        .row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .pad {
+            margin: 8px 0;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 40px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+
+        pre {
+            background: #0b1020;
+            color: #cfe3ff;
+            padding: 12px;
+            overflow: auto;
+            min-height: 160px;
+            max-height: 160px;
+        }
+
+        .badge {
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            border: 1px solid #ccc;
+        }
+
+        .idle {
+            background: #eef;
+        }
+
+        .running {
+            background: #ffe;
+        }
+
+        .alive {
+            background: #efe;
+        }
+
+        .warn {
+            background: #ffe3cc;
+        }
+
+        .err {
+            background: #ffd6d6;
+        }
+
+        .term {
+            background: #eee;
+            color: #666;
+        }
+
+        button {
+            padding: 6px 10px;
+        }
+
+        select {
+            padding: 4px 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: white;
+        }
+
+        code {
+            background: #f5f5f5;
+            padding: 0 4px;
+            border-radius: 4px;
+        }
+
+        label b {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        #files ul {
+            padding-left: 18px;
+        }
+
+        #files li {
+            margin: 6px 0;
+        }
+
+        #files pre {
+            margin-top: 6px;
+        }
+
+        .file-explorer {
+            display: flex;
+            gap: 12px;
+            margin: 8px 0;
+        }
+
+        .file-list {
+            min-width: 200px;
+            background: #f5f5f5;
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        .file-item {
+            padding: 4px 8px;
+            cursor: pointer;
+            border-radius: 3px;
+            margin: 2px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-item:hover {
+            background: #e0e0e0;
+        }
+
+        .file-item.active {
+            background: #007acc;
+            color: white;
+        }
+
+        .file-size {
+            font-size: 11px;
+            opacity: 0.7;
+        }
+
+        .download-btn {
+            background: none;
+            border: none;
+            padding: 2px 4px;
+            cursor: pointer;
+            border-radius: 2px;
+            font-size: 12px;
+        }
+
+        .download-btn:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .file-item.active .download-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Yosys Online Playground</h1>
+
+    <div class="pad">
+        <div class="row">
+            <div>Status: <span id="status" class="badge idle">Idle</span></div>
+            <div>Last heartbeat: <code id="lastbeat">—</code></div>
+        </div>
+    </div>
+
+    <div class="pad">
+        <div class="row">
+            <label for="verilog"><b>HDL source (saved as <code id="filename">top.v</code>)</b></label>
+            <select id="language-select">
+                <option value="verilog">Verilog (.v)</option>
+                <option value="systemverilog">SystemVerilog (.sv)</option>
+            </select>
+        </div>
+        <div id="verilog" style="height: 300px"></div>
+    </div>
+
+    <div class="pad">
+        <label for="passes"><b>Yosys passes (-p "...")</b></label>
+        <textarea
+            id="passes">hierarchy -auto-top; proc; opt; techmap; opt; stat; write_json out.json; write_verilog -noattr out.v</textarea>
+    </div>
+
+    <div class="pad row">
+        <button id="runBtn">Run Yosys</button>
+        <button id="pingBtn">Ping</button>
+        <button id="stopBtn">Terminate Worker</button>
+        <button id="newBtn">New Worker</button>
+    </div>
+
+    <div class="pad">
+        <b>Log</b>
+        <pre id="log"></pre>
+    </div>
+
+    <div class="pad">
+        <b>Output Files</b>
+        <div class="file-explorer">
+            <div class="file-list">
+                <div id="file-list-content">(none)</div>
+            </div>
+            <div style="flex: 1;">
+                <div id="output-editor" style="height: 400px; border: 1px solid #ccc;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { init } from "https://esm.sh/modern-monaco";
+
+        const monaco = await init();
+
+        const verilogEditor = monaco.editor.create(document.getElementById('verilog'), {
+            padding: { top: 8, bottom: 8 },
+        });
+        verilogEditor.setModel(monaco.editor.createModel(`module top(input a, input b, output y);
+  assign y = a & b;
+endmodule
+`, 'verilog'));
+
+        // Language selection handling
+        const $languageSelect = document.getElementById('language-select');
+        const $filename = document.getElementById('filename');
+
+        const examples = {
+            verilog: `module top(input a, input b, output y);
+  assign y = a & b;
+endmodule`,
+            systemverilog: `module top(
+    input logic a,
+    input logic b,
+    output logic y
+);
+    always_comb begin
+        y = a & b;
+    end
+endmodule`
+        };
+
+        function updateLanguage() {
+            const isSystemVerilog = $languageSelect.value === 'systemverilog';
+            const extension = isSystemVerilog ? '.sv' : '.v';
+            const language = isSystemVerilog ? 'systemverilog' : 'verilog';
+
+            $filename.textContent = `top${extension}`;
+
+            // Update Monaco editor language and example code
+            const currentValue = verilogEditor.getModel().getValue();
+            const isDefaultExample = Object.values(examples).includes(currentValue.trim());
+
+            const newCode = isDefaultExample ? examples[$languageSelect.value] : currentValue;
+            const newModel = monaco.editor.createModel(newCode, language);
+            const oldModel = verilogEditor.getModel();
+            verilogEditor.setModel(newModel);
+            oldModel.dispose();
+        }
+
+        $languageSelect.addEventListener('change', updateLanguage);
+
+        // Create output editor for viewing generated files
+        const outputEditor = monaco.editor.create(document.getElementById('output-editor'), {
+            padding: { top: 8, bottom: 8 },
+        });
+        outputEditor.setModel(monaco.editor.createModel('// Output files will appear here after running Yosys', 'javascript'));
+        outputEditor.updateOptions({ readOnly: true });
+
+        // --- Config ---
+        const CDN = 'https://cdn.jsdelivr.net/npm/@yowasp/yosys/gen/bundle.js';
+        const HEARTBEAT_MS = 2000;
+        const STALE_MS = 5000;
+
+        // --- UI helpers ---
+        const $status = document.getElementById('status');
+        const $lastbeat = document.getElementById('lastbeat');
+        const $log = document.getElementById('log');
+        const $fileListContent = document.getElementById('file-list-content');
+
+        const setStatus = (txt, cls) => { $status.textContent = txt; $status.className = `badge ${cls}`; };
+        const log = (...args) => {
+            const line = args.map(v => typeof v === 'string' ? v : JSON.stringify(v, null, 2)).join(' ');
+            $log.textContent += line + '\n'; $log.scrollTop = $log.scrollHeight;
+        };
+
+        // State for file workspace
+        let currentFiles = {};
+        let activeFile = null;
+
+        // Create workspace with files and file explorer
+        function renderFiles(filesOut) {
+            currentFiles = {};
+            activeFile = null;
+            $fileListContent.innerHTML = '';
+
+            const entries = Object.entries(filesOut || {});
+            if (!entries.length) {
+                $fileListContent.textContent = '(none)';
+                outputEditor.setModel(monaco.editor.createModel('// No output files generated', 'javascript'));
+                return;
+            }
+
+            // Process files and create models
+            for (const [name, bytes] of entries) {
+                const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+                if (u8.length === 0) continue; // Skip empty files
+
+                // Try to decode as text for supported file types
+                let content = `// Binary file (${u8.length} bytes)\n// Download to view contents`;
+                let language = 'javascript';
+
+                if (/\.(v|sv|json|txt|blif|il|ys)$/i.test(name)) {
+                    try {
+                        content = new TextDecoder().decode(u8);
+                        let filetype = name.split('.').pop();
+                        if (filetype === 'v') language = 'verilog';
+                        else if (filetype === 'sv') language = 'systemverilog';
+                        else if (filetype === 'json') language = 'json';
+                        else if (filetype === 'blif') language = 'text';
+                        else if (filetype === 'il') language = 'text';
+                        else if (filetype === 'ys') language = 'text';
+                        else language = 'text';
+                    } catch {
+                        // Keep default binary file message
+                    }
+                }
+
+                currentFiles[name] = {
+                    content,
+                    language,
+                    bytes: u8,
+                    model: monaco.editor.createModel(content, language)
+                };
+            }
+
+            // Create file list UI
+            const fileNames = Object.keys(currentFiles);
+            fileNames.forEach((name, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                if (index === 0) {
+                    fileItem.classList.add('active');
+                    activeFile = name;
+                    outputEditor.setModel(currentFiles[name].model);
+                }
+
+                const fileInfo = document.createElement('div');
+                fileInfo.innerHTML = `
+                    <div>${name}</div>
+                    <div class="file-size">${currentFiles[name].bytes.length} bytes</div>
+                `;
+
+                const downloadBtn = document.createElement('button');
+                downloadBtn.className = 'download-btn';
+                downloadBtn.textContent = '⬇';
+                downloadBtn.title = 'Download file';
+                downloadBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    const blob = new Blob([currentFiles[name].bytes], { type: 'application/octet-stream' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = name;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                };
+
+                fileItem.appendChild(fileInfo);
+                fileItem.appendChild(downloadBtn);
+
+                fileItem.onclick = () => {
+                    // Remove active class from all items
+                    document.querySelectorAll('.file-item').forEach(item => item.classList.remove('active'));
+                    // Add active class to clicked item
+                    fileItem.classList.add('active');
+                    // Switch editor content
+                    activeFile = name;
+                    outputEditor.setModel(currentFiles[name].model);
+                };
+
+                $fileListContent.appendChild(fileItem);
+            });
+        }
+
+        // --- Worker factory (module worker via Blob) ---
+        function createWorker() {
+            const workerCode = `
+      import { runYosys, Exit } from '${CDN}';
+      let busy = false;
+      const decoder = new TextDecoder();
+      
+      // Real-time streaming output collectors
+      const createStreamingCollector = (prefix) => {
+        const lines = [];
+        const push = (b) => {
+          if (b && b.length) {
+            const text = decoder.decode(b);
+            lines.push(text);
+            // Send output immediately for real-time display
+            self.postMessage({ type: 'output', stream: prefix, data: text });
+          }
+        };
+        return { lines, push };
+      };
+      
+      self.postMessage({ type: 'status', state: 'ready' });
+
+      self.onmessage = async (e) => {
+        const msg = e.data;
+        if (msg?.type === 'ping') { self.postMessage({ type: 'status', state: 'alive', t: Date.now() }); return; }
+        if (msg?.type === 'run') {
+          if (busy) { self.postMessage({ type: 'status', state: 'busy' }); return; }
+          busy = true; self.postMessage({ type: 'status', state: 'running' });
+          
+          let out, err;
+          try {
+            const isSystemVerilog = msg.language === 'systemverilog';
+            const filename = isSystemVerilog ? 'top.sv' : 'top.v';
+            const readCommand = isSystemVerilog ? 'read_verilog -sv' : 'read_verilog';
+            
+            const filesIn = { [filename]: msg.verilog ?? 'module top(input a,b,output y); assign y=a&b; endmodule\\n' };
+            const passes = msg.passes ?? 'hierarchy -auto-top; proc; opt; techmap; opt; stat; write_json out.json; write_verilog -noattr out.v';
+            const argv = ['-p', readCommand + ' ' + filename + '; ' + passes];
+
+            out = createStreamingCollector('stdout');
+            err = createStreamingCollector('stderr');
+            
+            const filesOut = await runYosys(argv, filesIn, { stdout: out.push, stderr: err.push, decodeASCII: false });
+
+            const text = [
+              '--- Yosys stdout ---', out.lines.join(''),
+              '--- Yosys stderr ---', err.lines.join(''),
+              '--- Files out ---', Object.keys(filesOut || {}).join(', ') || '(none)'
+            ].join('\\n');
+
+            self.postMessage({ type: 'result', ok: true, data: text, filesOut });
+            self.postMessage({ type: 'status', state: 'idle' });
+          } catch (e) {
+            let errorMsg = '';
+            if (e instanceof Exit) {
+              // Include stderr output in error message for better debugging
+              const stderrOutput = err ? err.lines.join('') : '';
+              const stdoutOutput = out ? out.lines.join('') : '';
+              errorMsg = 'Yosys exited with code ' + e.code;
+              if (stderrOutput.trim()) {
+                errorMsg += '\\n\\nStderr output:\\n' + stderrOutput;
+              }
+              if (stdoutOutput.trim()) {
+                errorMsg += '\\n\\nStdout output:\\n' + stdoutOutput;
+              }
+            } else {
+              errorMsg = String(e?.message || e);
+            }
+            self.postMessage({ type: 'result', ok: false, error: errorMsg });
+            self.postMessage({ type: 'status', state: 'error' });
+          } finally { busy = false; }
+        }
+      };
+
+      self.onerror = (e) => {
+        self.postMessage({ type: 'result', ok: false, error: 'Worker error: ' + e.message });
+        self.postMessage({ type: 'status', state: 'error' });
+      };
+    `;
+            const url = URL.createObjectURL(new Blob([workerCode], { type: 'text/javascript' }));
+            const w = new Worker(url, { type: 'module' });
+            URL.revokeObjectURL(url);
+            return w;
+        }
+
+        // --- State ---
+        let worker = null;
+        let heartbeatTimer = null;
+        let lastBeat = 0;
+
+        function startHeartbeat() {
+            stopHeartbeat();
+            heartbeatTimer = setInterval(() => {
+                if (!worker) return;
+                if (lastBeat && (Date.now() - lastBeat > STALE_MS)) setStatus('Unresponsive', 'warn');
+                worker.postMessage({ type: 'ping' });
+            }, HEARTBEAT_MS);
+        }
+        function stopHeartbeat() { if (heartbeatTimer) clearInterval(heartbeatTimer); heartbeatTimer = null; }
+
+        function attachWorkerEvents(w) {
+            w.onmessage = (e) => {
+                const { type } = e.data || {};
+                if (type === 'status') {
+                    const { state, t } = e.data;
+                    if (state === 'ready') { setStatus('Idle', 'idle'); log('[status] ready'); }
+                    else if (state === 'alive') { lastBeat = t || Date.now(); $lastbeat.textContent = new Date(lastBeat).toLocaleTimeString(); if ($status.textContent !== 'Running') setStatus('Alive', 'alive'); }
+                    else if (state === 'running') setStatus('Running', 'running');
+                    else if (state === 'idle') setStatus('Idle', 'idle');
+                    else if (state === 'busy') log('[status] busy (ignored run)');
+                    else if (state === 'error') setStatus('Error', 'err');
+                    return;
+                }
+                if (type === 'output') {
+                    // Handle real-time streaming output
+                    const { stream, data } = e.data;
+                    if (data && data.trim()) {
+                        // Add stream prefix for clarity and log immediately
+                        const lines = data.split('\n');
+                        for (const line of lines) {
+                            if (line.trim()) {
+                                $log.textContent += `[${stream}] ${line}\n`;
+                            }
+                        }
+                        $log.scrollTop = $log.scrollHeight;
+                    }
+                    return;
+                }
+                if (type === 'result') {
+                    if (e.data.ok) {
+                        log('\n--- Execution completed successfully ---');
+                        renderFiles(e.data.filesOut);   // <-- show downloadable files
+                    } else {
+                        log('\n! Error: ' + e.data.error);
+                    }
+                    return;
+                }
+                log('[message]', e.data);
+            };
+            w.onerror = (err) => { setStatus('Error', 'err'); log('! Worker error:', err.message || err); };
+            w.onmessageerror = (err) => { setStatus('Error', 'err'); log('! Worker message error (clone failed):', err.message || err); };
+        }
+
+        function ensureWorker() {
+            if (worker) return worker;
+            worker = createWorker();
+            attachWorkerEvents(worker);
+            startHeartbeat();
+            return worker;
+        }
+
+        function terminateWorker() {
+            if (worker) {
+                worker.terminate(); worker = null; stopHeartbeat();
+                setStatus('Terminated', 'term'); log('[worker] terminated');
+            }
+        }
+
+        // --- UI wiring ---
+        document.getElementById('runBtn').onclick = () => {
+            const w = ensureWorker();
+            const verilog = verilogEditor.getValue();
+            const passes = document.getElementById('passes').value;
+            const language = document.getElementById('language-select').value;
+            // Clear log for new run to see real-time output clearly
+            $log.textContent = '';
+            log('>> Running Yosys...');
+            w.postMessage({ type: 'run', verilog, passes, language });
+        };
+        document.getElementById('pingBtn').onclick = () => { const w = ensureWorker(); w.postMessage({ type: 'ping' }); };
+        document.getElementById('stopBtn').onclick = () => { terminateWorker(); };
+        document.getElementById('newBtn').onclick = () => { terminateWorker(); ensureWorker(); };
+
+        // Boot with a worker ready
+        ensureWorker();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,5 @@
+## How does co-simulation work in ngspice?
+
+Cosimulation with ngspice enables mixed-signal simulation by combining SPICE-based analog circuit models with a digital HDL simulation engine. In this setup, ngspice runs the analog portion of the design (e.g., transistor-level circuits, passive networks), while the digital portion (e.g., control logic, ADC state machines) is executed by an external HDL simulator. Communication occurs via a well-defined interface - ngspice exchanges signal values with the digital simulator at synchronized timesteps, ensuring that analog and digital events remain time-aligned.
+
+When using Icarus Verilog (iverilog and vvp), ngspice interacts through its d_cosim or d_process model, spawning the Icarus Verilog simulation process and passing data through pipes or sockets. Compared to Verilator, which compiles Verilog into a C++ model that must be linked and rebuilt for every change, Icarus Verilog offers faster iteration, direct interpretation of HDL without a compile-link cycle, and better compatibility with ngspice’s cosimulation interface - making it the preferred choice when doing rapid mixed-signal development and debugging.

@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XSCHEM Symbol Generator</title>
+    <style>
+        body {
+            font: 14px/1.4 system-ui, sans-serif;
+            max-width: 960px;
+            margin: 24px auto;
+            padding: 0 12px;
+        }
+
+        .row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .pad {
+            margin: 8px 0;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 40px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        }
+
+        pre {
+            background: #0b1020;
+            color: #cfe3ff;
+            padding: 12px;
+            overflow: auto;
+            min-height: 160px;
+            max-height: 160px;
+        }
+
+        .badge {
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            border: 1px solid #ccc;
+        }
+
+        .idle {
+            background: #eef;
+        }
+
+        .running {
+            background: #ffe;
+        }
+
+        .alive {
+            background: #efe;
+        }
+
+        .warn {
+            background: #ffe3cc;
+        }
+
+        .err {
+            background: #ffd6d6;
+        }
+
+        .term {
+            background: #eee;
+            color: #666;
+        }
+
+        button {
+            padding: 6px 10px;
+        }
+
+        select {
+            padding: 4px 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: white;
+        }
+
+        input[type="number"] {
+            padding: 4px 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            width: 80px;
+        }
+
+        code {
+            background: #f5f5f5;
+            padding: 0 4px;
+            border-radius: 4px;
+        }
+
+        label b {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .file-explorer {
+            display: flex;
+            gap: 12px;
+            margin: 8px 0;
+        }
+
+        .file-list {
+            min-width: 200px;
+            background: #f5f5f5;
+            padding: 8px;
+            border-radius: 4px;
+        }
+
+        .file-item {
+            padding: 4px 8px;
+            cursor: pointer;
+            border-radius: 3px;
+            margin: 2px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .file-item:hover {
+            background: #e0e0e0;
+        }
+
+        .file-item.active {
+            background: #007acc;
+            color: white;
+        }
+
+        .file-size {
+            font-size: 11px;
+            opacity: 0.7;
+        }
+
+        .download-btn {
+            background: none;
+            border: none;
+            padding: 2px 4px;
+            cursor: pointer;
+            border-radius: 2px;
+            font-size: 12px;
+        }
+
+        .download-btn:hover {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .file-item.active .download-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .settings-row {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>XSCHEM Symbol Generator</h1>
+
+    <div class="pad">
+        <div class="row">
+            <div>Status: <span id="status" class="badge idle">Idle</span></div>
+            <div>Last heartbeat: <code id="lastbeat">—</code></div>
+        </div>
+    </div>
+
+    <div class="pad">
+        <div class="row">
+            <label for="verilog"><b>HDL source (saved as <code id="filename">top.v</code>)</b></label>
+            <select id="language-select">
+                <option value="verilog">Verilog (.v)</option>
+                <option value="systemverilog">SystemVerilog (.sv)</option>
+            </select>
+        </div>
+        <div id="verilog" style="height: 300px"></div>
+    </div>
+
+    <div class="pad">
+        <label for="settings"><b>Symbol Generation Settings</b></label>
+        <div class="settings-row">
+            <div>
+                <label for="top-module">Top Module:</label>
+                <input type="text" id="top-module" placeholder="auto-detect" />
+            </div>
+            <div>
+                <label for="width">Symbol Width:</label>
+                <input type="number" id="width" value="240" min="40" step="20" />
+            </div>
+        </div>
+    </div>
+
+    <div class="pad row">
+        <button id="runBtn">Generate Symbol</button>
+        <button id="pingBtn">Ping</button>
+        <button id="stopBtn">Terminate Worker</button>
+        <button id="newBtn">New Worker</button>
+    </div>
+
+    <div class="pad">
+        <b>Log</b>
+        <pre id="log"></pre>
+    </div>
+
+    <div class="pad">
+        <b>Generated Symbol Files</b>
+        <div class="file-explorer">
+            <div class="file-list">
+                <div id="file-list-content">(none)</div>
+            </div>
+            <div style="flex: 1;">
+                <div id="output-editor" style="height: 400px; border: 1px solid #ccc;"></div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { init } from "https://esm.sh/modern-monaco";
+
+        const monaco = await init();
+
+        const verilogEditor = monaco.editor.create(document.getElementById('verilog'), {
+            padding: { top: 8, bottom: 8 },
+        });
+        verilogEditor.setModel(monaco.editor.createModel(`module simple_gate(
+    input wire a,
+    input wire b,
+    output wire y
+);
+    assign y = a & b;
+endmodule
+`, 'verilog'));
+
+        // Language selection handling
+        const $languageSelect = document.getElementById('language-select');
+        const $filename = document.getElementById('filename');
+
+        const examples = {
+            verilog: `module simple_gate(
+    input wire a,
+    input wire b,
+    output wire y
+);
+    assign y = a & b;
+endmodule`,
+            systemverilog: `module simple_gate(
+    input logic a,
+    input logic b,
+    output logic y
+);
+    always_comb begin
+        y = a & b;
+    end
+endmodule`
+        };
+
+        function updateLanguage() {
+            const isSystemVerilog = $languageSelect.value === 'systemverilog';
+            const extension = isSystemVerilog ? '.sv' : '.v';
+            const language = isSystemVerilog ? 'systemverilog' : 'verilog';
+
+            $filename.textContent = `top${extension}`;
+
+            // Update Monaco editor language and example code
+            const currentValue = verilogEditor.getModel().getValue();
+            const isDefaultExample = Object.values(examples).includes(currentValue.trim());
+
+            const newCode = isDefaultExample ? examples[$languageSelect.value] : currentValue;
+            const newModel = monaco.editor.createModel(newCode, language);
+            const oldModel = verilogEditor.getModel();
+            verilogEditor.setModel(newModel);
+            oldModel.dispose();
+        }
+
+        $languageSelect.addEventListener('change', updateLanguage);
+
+        // Create output editor for viewing generated files
+        const outputEditor = monaco.editor.create(document.getElementById('output-editor'), {
+            padding: { top: 8, bottom: 8 },
+        });
+        outputEditor.setModel(monaco.editor.createModel('// Generated XSCHEM symbol files will appear here', 'text'));
+        outputEditor.updateOptions({ readOnly: true });
+
+        // --- Config ---
+        const CDN = 'https://cdn.jsdelivr.net/npm/@yowasp/yosys/gen/bundle.js';
+        const HEARTBEAT_MS = 2000;
+        const STALE_MS = 5000;
+
+        // --- UI helpers ---
+        const $status = document.getElementById('status');
+        const $lastbeat = document.getElementById('lastbeat');
+        const $log = document.getElementById('log');
+        const $fileListContent = document.getElementById('file-list-content');
+
+        const setStatus = (txt, cls) => { $status.textContent = txt; $status.className = `badge ${cls}`; };
+        const log = (...args) => {
+            const line = args.map(v => typeof v === 'string' ? v : JSON.stringify(v, null, 2)).join(' ');
+            $log.textContent += line + '\n'; $log.scrollTop = $log.scrollHeight;
+        };
+
+        // State for file workspace
+        let currentFiles = {};
+        let activeFile = null;
+
+        // Port and Module classes (JavaScript version of Python classes)
+        class Port {
+            static INPUT = "input";
+            static OUTPUT = "output";
+            static BIDIRECTIONAL = "bidirectional";
+
+            constructor(name, direction, bits) {
+                this.name = name;
+                if (![Port.INPUT, Port.OUTPUT, Port.BIDIRECTIONAL].includes(direction)) {
+                    throw new Error(`Unknown port direction: ${direction}`);
+                }
+                this.direction = direction;
+                this.bits = bits.sort((a, b) => a - b);
+            }
+        }
+
+        class Module {
+            constructor(name, config) {
+                this.name = name;
+                this.config = config;
+                this.input_ports = [];
+                this.output_ports = [];
+                this._parse();
+            }
+
+            _parse() {
+                const ports = this.config.ports || {};
+                if (Object.keys(ports).length === 0) {
+                    throw new Error(`No ports found in module ${this.name}`);
+                }
+
+                let parsed_ports = [];
+                for (const [port_name, port_details] of Object.entries(ports)) {
+                    const direction = port_details.direction || "unknown";
+                    const bits = port_details.bits || [];
+                    parsed_ports.push(new Port(port_name, direction, bits));
+                }
+
+                parsed_ports.sort((a, b) => Math.min(...a.bits) - Math.min(...b.bits));
+
+                const bus_port_pattern = /(?<signal_name>[\w_]+)_(?<bit_index>\d+)/;
+                const buses = {};
+
+                for (const port of parsed_ports) {
+                    const match = port.name.match(bus_port_pattern);
+                    if (match) {
+                        const signal_name = match.groups.signal_name;
+                        const bit_index = parseInt(match.groups.bit_index);
+                        if (!(signal_name in buses)) {
+                            buses[signal_name] = [];
+                        }
+                        buses[signal_name].push([bit_index, port]);
+                    } else {
+                        buses[port.name] = [[0, port]];
+                    }
+                }
+
+                parsed_ports = [];
+                for (const [bus_name, bus_ports] of Object.entries(buses)) {
+                    const bits = [];
+                    for (const [bit_index, port] of bus_ports) {
+                        bits.push(...port.bits);
+                    }
+                    parsed_ports.push(new Port(bus_name, bus_ports[0][1].direction, bits));
+                }
+
+                this.input_ports = parsed_ports.filter(p => p.direction === Port.INPUT);
+                this.output_ports = parsed_ports.filter(p => p.direction === Port.OUTPUT);
+            }
+
+            get_xschem_symbol(width = 240) {
+                let s = "v {xschem version=3.4.7 file_version=1.2}\n";
+                s += "G {}\n";
+                s += "K {\n";
+                s += "  type=primitive\n";
+
+                const input_format = this.input_ports.map(p =>
+                    `@@${p.name}${p.bits.length > 1 ? `[${p.bits.length - 1}..0]` : ''}`
+                ).join(' ');
+                const output_format = this.output_ports.map(p =>
+                    `@@${p.name}${p.bits.length > 1 ? `[${p.bits.length - 1}..0]` : ''}`
+                ).join(' ');
+
+                s += `  format="@name [ ${input_format} ] [ ${output_format} ] @model"\n`;
+                s += `  template="name=A1 model=${this.name} device_model=\\".model ${this.name} d_cosim simulation=\\"ivlng\\" sim_args=[\\"${this.name}\\"]\\"\"\n`;
+                s += "\n";
+                s += "  * Generated by XSCHEM Symbol Generator\n";
+                s += "  *   Cedric Hirschi, ETH Zurich 2025\n";
+                s += `  * Generated for module '${this.name}'\n`;
+                s += "}\n";
+                s += "V {}\n";
+                s += "S {}\n";
+                s += "E {}\n";
+                s += "\n";
+                s += "\n";
+
+                // Calculate dimensions
+                const max_pins_per_side = Math.max(this.input_ports.length, this.output_ports.length);
+                const symbol_height = Math.max(40, max_pins_per_side * 20);
+                const x_left = -width / 2;
+                const x_right = width / 2;
+
+                if (x_left % 20 !== 0) {
+                    throw new Error(`width must be a multiple of 40, got ${width}`);
+                }
+
+                // Input ports on the left
+                for (let i = 0; i < this.input_ports.length; i++) {
+                    const port = this.input_ports[i];
+                    const y_coord = i * 20;
+                    s += `B 5 ${x_left - 2.5} ${y_coord - 2.5} ${x_left + 2.5} ${y_coord + 2.5}\t{name=${port.name}\tdir=in}\n`;
+                    s += `L 4 ${x_left} ${y_coord} ${x_left + 20} ${y_coord} {}\n`;
+                    s += `T {${port.name}} ${x_left + 25} ${y_coord} 0 0 0.25 0.25 {vcenter=true}\n`;
+                    s += "\n";
+                }
+                s += "\n";
+
+                // Output ports on the right
+                for (let i = 0; i < this.output_ports.length; i++) {
+                    const port = this.output_ports[i];
+                    const y_coord = i * 20;
+                    const bus_suffix = port.bits.length > 1 ? `[${port.bits.length - 1}..0]` : '';
+                    s += `B 5 ${x_right - 2.5} ${y_coord - 2.5} ${x_right + 2.5} ${y_coord + 2.5}\t{name=${port.name}${bus_suffix}\tdir=out}\n`;
+                    s += `L 4 ${x_right - 20} ${y_coord} ${x_right} ${y_coord} {}\n`;
+                    s += `T {${port.name}${bus_suffix}} ${x_right - 25} ${y_coord} 2 0 0.25 0.25 {vcenter=true}\n`;
+                    s += "\n";
+                }
+                s += "\n";
+
+                // Main symbol box
+                s += `B 4 ${x_left + 20} -20 ${x_right - 20} ${symbol_height} {fill=false}\n`;
+                s += `T {@symname} ${x_left + 20} -40 2 1 0.3 0.3 {vcenter=true}\n`;
+                s += `T {@name} ${x_left + 20} -60 2 1 0.3 0.3 {vcenter=true}\n`;
+
+                return s;
+            }
+        }
+
+        // Create workspace with files and file explorer
+        function renderFiles(filesOut) {
+            currentFiles = {};
+            activeFile = null;
+            $fileListContent.innerHTML = '';
+
+            const entries = Object.entries(filesOut || {});
+            if (!entries.length) {
+                $fileListContent.textContent = '(none)';
+                outputEditor.setModel(monaco.editor.createModel('// No symbol files generated', 'text'));
+                return;
+            }
+
+            // Process files and create models
+            for (const [name, bytes] of entries) {
+                const u8 = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+                if (u8.length === 0) continue; // Skip empty files
+
+                // Only show .json and .sym files in the output editor
+                if (!/\.(sym|json)$/i.test(name)) {
+                    continue; // Skip files that are not .json or .sym
+                }
+
+                // Decode as text for supported file types
+                let content = `// Binary file (${u8.length} bytes)\n// Download to view contents`;
+                let language = 'text';
+
+                try {
+                    content = new TextDecoder().decode(u8);
+                    const filetype = name.split('.').pop();
+                    if (filetype === 'sym') language = 'text';
+                    else if (filetype === 'json') language = 'json';
+                    else language = 'text';
+                } catch {
+                    // Keep default binary file message
+                }
+
+                currentFiles[name] = {
+                    content,
+                    language,
+                    bytes: u8,
+                    model: monaco.editor.createModel(content, language)
+                };
+            }
+
+            // Create file list UI
+            const fileNames = Object.keys(currentFiles);
+            fileNames.forEach((name, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'file-item';
+                if (index === 0) {
+                    fileItem.classList.add('active');
+                    activeFile = name;
+                    outputEditor.setModel(currentFiles[name].model);
+                }
+
+                const fileInfo = document.createElement('div');
+                fileInfo.innerHTML = `
+                    <div>${name}</div>
+                    <div class="file-size">${currentFiles[name].bytes.length} bytes</div>
+                `;
+
+                const downloadBtn = document.createElement('button');
+                downloadBtn.className = 'download-btn';
+                downloadBtn.textContent = '⬇';
+                downloadBtn.title = 'Download file';
+                downloadBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    const blob = new Blob([currentFiles[name].bytes], { type: 'application/octet-stream' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = name;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                };
+
+                fileItem.appendChild(fileInfo);
+                fileItem.appendChild(downloadBtn);
+
+                fileItem.onclick = () => {
+                    // Remove active class from all items
+                    document.querySelectorAll('.file-item').forEach(item => item.classList.remove('active'));
+                    // Add active class to clicked item
+                    fileItem.classList.add('active');
+                    // Switch editor content
+                    activeFile = name;
+                    outputEditor.setModel(currentFiles[name].model);
+                };
+
+                $fileListContent.appendChild(fileItem);
+            });
+        }
+
+        // --- Worker factory (module worker via Blob) ---
+        function createWorker() {
+            const workerCode = `
+      import { runYosys, Exit } from '${CDN}';
+      let busy = false;
+      const decoder = new TextDecoder();
+      
+      // Real-time streaming output collectors
+      const createStreamingCollector = (prefix) => {
+        const lines = [];
+        const push = (b) => {
+          if (b && b.length) {
+            const text = decoder.decode(b);
+            lines.push(text);
+            // Send output immediately for real-time display
+            self.postMessage({ type: 'output', stream: prefix, data: text });
+          }
+        };
+        return { lines, push };
+      };
+
+      // Port and Module classes (same as main thread)
+      class Port {
+        static INPUT = "input";
+        static OUTPUT = "output";
+        static BIDIRECTIONAL = "bidirectional";
+
+        constructor(name, direction, bits) {
+          this.name = name;
+          if (![Port.INPUT, Port.OUTPUT, Port.BIDIRECTIONAL].includes(direction)) {
+            throw new Error("Unknown port direction: " + direction);
+          }
+          this.direction = direction;
+          this.bits = bits.sort((a, b) => a - b);
+        }
+      }
+
+      class Module {
+        constructor(name, config) {
+          this.name = name;
+          this.config = config;
+          this.input_ports = [];
+          this.output_ports = [];
+          this._parse();
+        }
+
+        _parse() {
+          const ports = this.config.ports || {};
+          if (Object.keys(ports).length === 0) {
+            throw new Error("No ports found in module " + this.name);
+          }
+
+          let parsed_ports = [];
+          for (const [port_name, port_details] of Object.entries(ports)) {
+            const direction = port_details.direction || "unknown";
+            const bits = port_details.bits || [];
+            parsed_ports.push(new Port(port_name, direction, bits));
+          }
+
+          parsed_ports.sort((a, b) => Math.min(...a.bits) - Math.min(...b.bits));
+
+          const bus_port_pattern = /(?<signal_name>[\\\\w_]+)_(?<bit_index>\\\\d+)/;
+          const buses = {};
+
+          for (const port of parsed_ports) {
+            const match = port.name.match(bus_port_pattern);
+            if (match) {
+              const signal_name = match.groups.signal_name;
+              const bit_index = parseInt(match.groups.bit_index);
+              if (!(signal_name in buses)) {
+                buses[signal_name] = [];
+              }
+              buses[signal_name].push([bit_index, port]);
+            } else {
+              buses[port.name] = [[0, port]];
+            }
+          }
+
+          parsed_ports = [];
+          for (const [bus_name, bus_ports] of Object.entries(buses)) {
+            const bits = [];
+            for (const [bit_index, port] of bus_ports) {
+              bits.push(...port.bits);
+            }
+            parsed_ports.push(new Port(bus_name, bus_ports[0][1].direction, bits));
+          }
+
+          this.input_ports = parsed_ports.filter(p => p.direction === Port.INPUT);
+          this.output_ports = parsed_ports.filter(p => p.direction === Port.OUTPUT);
+        }
+
+        get_xschem_symbol(width = 240) {
+          let s = "v {xschem version=3.4.7 file_version=1.2}\\n";
+          s += "G {}\\n";
+          s += "K {\\n";
+          s += "  type=primitive\\n";
+          
+          const input_format = this.input_ports.map(p => 
+            "@@" + p.name + (p.bits.length > 1 ? "[" + (p.bits.length-1) + "..0]" : "")
+          ).join(' ');
+          const output_format = this.output_ports.map(p => 
+            "@@" + p.name + (p.bits.length > 1 ? "[" + (p.bits.length-1) + "..0]" : "")
+          ).join(' ');
+          
+          s += '  format="@name [ ' + input_format + ' ] [ ' + output_format + ' ] @model"\\n';
+          s += '  template="name=A1 model=' + this.name + ' device_model=\\\\".model ' + this.name + ' d_cosim simulation=\\\\"ivlng\\\\" sim_args=[\\\\"' + this.name + '\\\\"]\\\\""\\n';
+          s += "\\n";
+          s += "  * Generated by XSCHEM Symbol Generator\\n";
+          s += "  *   Cedric Hirschi, ETH Zurich 2025\\n";
+          s += "  * Generated for module '" + this.name + "'\\n";
+          s += "}\\n";
+          s += "V {}\\n";
+          s += "S {}\\n";
+          s += "E {}\\n";
+          s += "\\n";
+          s += "\\n";
+
+          // Calculate dimensions
+          const max_pins_per_side = Math.max(this.input_ports.length, this.output_ports.length);
+          const symbol_height = Math.max(40, max_pins_per_side * 20);
+          const x_left = -width / 2;
+          const x_right = width / 2;
+
+          if (x_left % 20 !== 0) {
+            throw new Error("width must be a multiple of 40, got " + width);
+          }
+
+          // Input ports on the left
+          for (let i = 0; i < this.input_ports.length; i++) {
+            const port = this.input_ports[i];
+            const y_coord = i * 20;
+            s += "B 5 " + (x_left-2.5) + " " + (y_coord - 2.5) + " " + (x_left+2.5) + " " + (y_coord + 2.5) + "\\t{name=" + port.name + "\\tdir=in}\\n";
+            s += "L 4 " + x_left + " " + y_coord + " " + (x_left+20) + " " + y_coord + " {}\\n";
+            s += "T {" + port.name + "} " + (x_left+25) + " " + y_coord + " 0 0 0.25 0.25 {vcenter=true}\\n";
+            s += "\\n";
+          }
+          s += "\\n";
+
+          // Output ports on the right
+          for (let i = 0; i < this.output_ports.length; i++) {
+            const port = this.output_ports[i];
+            const y_coord = i * 20;
+            const bus_suffix = port.bits.length > 1 ? "[" + (port.bits.length-1) + "..0]" : "";
+            s += "B 5 " + (x_right-2.5) + " " + (y_coord - 2.5) + " " + (x_right+2.5) + " " + (y_coord + 2.5) + "\\t{name=" + port.name + bus_suffix + "\\tdir=out}\\n";
+            s += "L 4 " + (x_right-20) + " " + y_coord + " " + x_right + " " + y_coord + " {}\\n";
+            s += "T {" + port.name + bus_suffix + "} " + (x_right-25) + " " + y_coord + " 2 0 0.25 0.25 {vcenter=true}\\n";
+            s += "\\n";
+          }
+          s += "\\n";
+
+          // Main symbol box
+          s += "B 4 " + (x_left+20) + " -20 " + (x_right-20) + " " + symbol_height + " {fill=false}\\n";
+          s += "T {@symname} " + (x_left+20) + " -40 2 1 0.3 0.3 {vcenter=true}\\n";
+          s += "T {@name} " + (x_left+20) + " -60 2 1 0.3 0.3 {vcenter=true}\\n";
+
+          return s;
+        }
+      }
+      
+      self.postMessage({ type: 'status', state: 'ready' });
+
+      self.onmessage = async (e) => {
+        const msg = e.data;
+        if (msg?.type === 'ping') { self.postMessage({ type: 'status', state: 'alive', t: Date.now() }); return; }
+        if (msg?.type === 'run') {
+          if (busy) { self.postMessage({ type: 'status', state: 'busy' }); return; }
+          busy = true; self.postMessage({ type: 'status', state: 'running' });
+          
+          let out, err;
+          try {
+            const isSystemVerilog = msg.language === 'systemverilog';
+            const filename = isSystemVerilog ? 'top.sv' : 'top.v';
+            const readCommand = isSystemVerilog ? 'read_verilog -sv' : 'read_verilog';
+            
+            const filesIn = { [filename]: msg.verilog ?? 'module top(input a,b,output y); assign y=a&b; endmodule\\\\n' };
+            
+            // Generate JSON to analyze the module
+            const passes = readCommand + ' ' + filename + '; hierarchy -auto-top; proc; write_json out.json';
+            const argv = ['-p', passes];
+
+            out = createStreamingCollector('stdout');
+            err = createStreamingCollector('stderr');
+            
+            const filesOut = await runYosys(argv, filesIn, { stdout: out.push, stderr: err.push, decodeASCII: false });
+
+            // Parse the JSON to extract module information
+            const jsonBytes = filesOut['out.json'];
+            if (!jsonBytes) {
+              throw new Error('Failed to generate JSON output from Yosys');
+            }
+            
+            const jsonText = new TextDecoder().decode(jsonBytes);
+            const data = JSON.parse(jsonText);
+            
+            const modules = data.modules || {};
+            if (Object.keys(modules).length === 0) {
+              throw new Error('No modules found in input');
+            }
+            
+            const topModuleName = msg.topModule || Object.keys(modules)[0];
+            if (!(topModuleName in modules)) {
+              throw new Error('Top module not found: ' + topModuleName + '. Available modules: ' + Object.keys(modules).join(', '));
+            }
+            
+            const topModule = new Module(topModuleName, modules[topModuleName]);
+            const width = msg.width || 240;
+            
+            const symbolContent = topModule.get_xschem_symbol(width);
+            const symbolFilename = topModule.name + '.sym';
+            
+            // Create output files
+            const resultFiles = {
+              [symbolFilename]: new TextEncoder().encode(symbolContent),
+              'module.json': jsonBytes
+            };
+
+            const text = [
+              '--- Symbol Generation Summary ---',
+              'Module: ' + topModule.name,
+              'Input ports: ' + topModule.input_ports.length + ' (' + topModule.input_ports.map(p => p.name).join(', ') + ')',
+              'Output ports: ' + topModule.output_ports.length + ' (' + topModule.output_ports.map(p => p.name).join(', ') + ')',
+              'Symbol width: ' + width,
+              'Generated file: ' + symbolFilename
+            ].join('\\\\n');
+
+            self.postMessage({ type: 'result', ok: true, data: text, filesOut: resultFiles });
+            self.postMessage({ type: 'status', state: 'idle' });
+          } catch (e) {
+            let errorMsg = '';
+            if (e instanceof Exit) {
+              // Include stderr output in error message for better debugging
+              const stderrOutput = err ? err.lines.join('') : '';
+              const stdoutOutput = out ? out.lines.join('') : '';
+              errorMsg = 'Yosys exited with code ' + e.code;
+              if (stderrOutput.trim()) {
+                errorMsg += '\\\\n\\\\nStderr output:\\\\n' + stderrOutput;
+              }
+              if (stdoutOutput.trim()) {
+                errorMsg += '\\\\n\\\\nStdout output:\\\\n' + stdoutOutput;
+              }
+            } else {
+              errorMsg = String(e?.message || e);
+            }
+            self.postMessage({ type: 'result', ok: false, error: errorMsg });
+            self.postMessage({ type: 'status', state: 'error' });
+          } finally { busy = false; }
+        }
+      };
+
+      self.onerror = (e) => {
+        self.postMessage({ type: 'result', ok: false, error: 'Worker error: ' + e.message });
+        self.postMessage({ type: 'status', state: 'error' });
+      };
+    `;
+            const url = URL.createObjectURL(new Blob([workerCode], { type: 'text/javascript' }));
+            const w = new Worker(url, { type: 'module' });
+            URL.revokeObjectURL(url);
+            return w;
+        }
+
+        // --- State ---
+        let worker = null;
+        let heartbeatTimer = null;
+        let lastBeat = 0;
+
+        function startHeartbeat() {
+            stopHeartbeat();
+            heartbeatTimer = setInterval(() => {
+                if (!worker) return;
+                if (lastBeat && (Date.now() - lastBeat > STALE_MS)) setStatus('Unresponsive', 'warn');
+                worker.postMessage({ type: 'ping' });
+            }, HEARTBEAT_MS);
+        }
+        function stopHeartbeat() { if (heartbeatTimer) clearInterval(heartbeatTimer); heartbeatTimer = null; }
+
+        function attachWorkerEvents(w) {
+            w.onmessage = (e) => {
+                const { type } = e.data || {};
+                if (type === 'status') {
+                    const { state, t } = e.data;
+                    if (state === 'ready') { setStatus('Idle', 'idle'); log('[status] ready'); }
+                    else if (state === 'alive') { lastBeat = t || Date.now(); $lastbeat.textContent = new Date(lastBeat).toLocaleTimeString(); if ($status.textContent !== 'Running') setStatus('Alive', 'alive'); }
+                    else if (state === 'running') setStatus('Running', 'running');
+                    else if (state === 'idle') setStatus('Idle', 'idle');
+                    else if (state === 'busy') log('[status] busy (ignored run)');
+                    else if (state === 'error') setStatus('Error', 'err');
+                    return;
+                }
+                if (type === 'output') {
+                    // Handle real-time streaming output
+                    const { stream, data } = e.data;
+                    if (data && data.trim()) {
+                        // Add stream prefix for clarity and log immediately
+                        const lines = data.split('\n');
+                        for (const line of lines) {
+                            if (line.trim()) {
+                                $log.textContent += `[${stream}] ${line}\n`;
+                            }
+                        }
+                        $log.scrollTop = $log.scrollHeight;
+                    }
+                    return;
+                }
+                if (type === 'result') {
+                    if (e.data.ok) {
+                        log('\n--- Symbol generation completed successfully ---');
+                        renderFiles(e.data.filesOut);
+                    } else {
+                        log('\n! Error: ' + e.data.error);
+                    }
+                    return;
+                }
+                log('[message]', e.data);
+            };
+            w.onerror = (err) => {
+                setStatus('Error', 'err');
+                const errorMsg = err.error?.message || err.message || err.filename ? `${err.filename}:${err.lineno}:${err.colno} - ${err.error?.message || 'Unknown error'}` : 'Worker error';
+                log('! Worker error:', errorMsg);
+            };
+            w.onmessageerror = (err) => {
+                setStatus('Error', 'err');
+                const errorMsg = err.error?.message || err.message || 'Message error (clone failed)';
+                log('! Worker message error:', errorMsg);
+            };
+        }
+
+        function ensureWorker() {
+            if (worker) return worker;
+            worker = createWorker();
+            attachWorkerEvents(worker);
+            startHeartbeat();
+            return worker;
+        }
+
+        function terminateWorker() {
+            if (worker) {
+                worker.terminate(); worker = null; stopHeartbeat();
+                setStatus('Terminated', 'term'); log('[worker] terminated');
+            }
+        }
+
+        // --- UI wiring ---
+        document.getElementById('runBtn').onclick = () => {
+            const w = ensureWorker();
+            const verilog = verilogEditor.getValue();
+            const language = document.getElementById('language-select').value;
+            const topModule = document.getElementById('top-module').value.trim() || null;
+            const width = parseInt(document.getElementById('width').value) || 240;
+
+            // Validate width
+            if (width % 40 !== 0) {
+                log('! Error: Symbol width must be a multiple of 40');
+                return;
+            }
+
+            // Clear log for new run to see real-time output clearly
+            $log.textContent = '';
+            log('>> Generating XSCHEM symbol...');
+            w.postMessage({ type: 'run', verilog, language, topModule, width });
+        };
+        document.getElementById('pingBtn').onclick = () => { const w = ensureWorker(); w.postMessage({ type: 'ping' }); };
+        document.getElementById('stopBtn').onclick = () => { terminateWorker(); };
+        document.getElementById('newBtn').onclick = () => { terminateWorker(); ensureWorker(); };
+
+        // Boot with a worker ready
+        ensureWorker();
+    </script>
+</body>
+
+</html>

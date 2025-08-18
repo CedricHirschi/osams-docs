@@ -1,0 +1,9 @@
+[project]
+name = "osams-docs"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "mkdocs-exporter>=6.2.0",
+    "mkdocs-glightbox>=0.4.0",
+    "mkdocs-material[imaging]>=9.6.17",
+]
