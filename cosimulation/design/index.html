@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html class="no-js" lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="Introduction to Open Source Analog and Mixed-Signal (AMS) Design" name="description"/>
+<meta content="Cedric Hirschi" name="author"/>
+<link href="https://CedricHirschi.github.io/osams-docs/cosimulation/design/" rel="canonical"/>
+<link href="../intro/" rel="prev"/>
+<link href="../bridges/" rel="next"/>
+<link href="../../assets/images/favicon.png" rel="icon"/>
+<meta content="mkdocs-1.6.1, mkdocs-material-9.6.17" name="generator"/>
+<title>Creating a Mixed-Signal Simulation - Open Source Analog and Mixed-Signal Design</title>
+<link href="../../assets/stylesheets/main.7e37652d.min.css" rel="stylesheet"/>
+<link href="../../assets/stylesheets/palette.06af60db.min.css" rel="stylesheet"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css?family=Roboto+Flex:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&amp;display=fallback" rel="stylesheet"/>
+<style>:root{--md-text-font:"Roboto Flex";--md-code-font:"Roboto Mono"}</style>
+<script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+<meta content="website" property="og:type"/>
+<meta content="Creating a Mixed-Signal Simulation - Open Source Analog and Mixed-Signal Design" property="og:title"/>
+<meta content="Introduction to Open Source Analog and Mixed-Signal (AMS) Design" property="og:description"/>
+<meta content="https://CedricHirschi.github.io/osams-docs/assets/images/social/cosimulation/design.png" property="og:image"/>
+<meta content="image/png" property="og:image:type"/>
+<meta content="1200" property="og:image:width"/>
+<meta content="630" property="og:image:height"/>
+<meta content="https://CedricHirschi.github.io/osams-docs/cosimulation/design/" property="og:url"/>
+<meta content="summary_large_image" name="twitter:card"/>
+<meta content="Creating a Mixed-Signal Simulation - Open Source Analog and Mixed-Signal Design" name="twitter:title"/>
+<meta content="Introduction to Open Source Analog and Mixed-Signal (AMS) Design" name="twitter:description"/>
+<meta content="https://CedricHirschi.github.io/osams-docs/assets/images/social/cosimulation/design.png" name="twitter:image"/>
+<link href="../../assets/stylesheets/glightbox.min.css" rel="stylesheet"/><style>
+    html.glightbox-open { overflow: initial; height: 100%; }
+    .gslide-title { margin-top: 0px; user-select: text; }
+    .gslide-desc { color: #666; user-select: text; }
+    .gslide-image img { background: white; }
+    .gscrollbar-fixer { padding-right: 15px; }
+    .gdesc-inner { font-size: 0.75rem; }
+    body[data-md-color-scheme="slate"] .gdesc-inner { background: var(--md-default-bg-color);}
+    body[data-md-color-scheme="slate"] .gslide-title { color: var(--md-default-fg-color);}
+    body[data-md-color-scheme="slate"] .gslide-desc { color: var(--md-default-fg-color);}</style> <script src="../../assets/javascripts/glightbox.min.js"></script></head>
+<body data-md-color-accent="indigo" data-md-color-primary="indigo" data-md-color-scheme="default" dir="ltr">
+<input autocomplete="off" class="md-toggle" data-md-toggle="drawer" id="__drawer" type="checkbox"/>
+<input autocomplete="off" class="md-toggle" data-md-toggle="search" id="__search" type="checkbox"/>
+<label class="md-overlay" for="__drawer"></label>
+<div data-md-component="skip">
+<a class="md-skip" href="#digital-design">
+          Skip to content
+        </a>
+</div>
+<div data-md-component="announce">
+</div>
+<header class="md-header md-header--shadow md-header--lifted" data-md-component="header">
+<nav aria-label="Header" class="md-header__inner md-grid">
+<a aria-label="Open Source Analog and Mixed-Signal Design" class="md-header__button md-logo" data-md-component="logo" href="../.." title="Open Source Analog and Mixed-Signal Design">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+<label class="md-header__button md-icon" for="__drawer">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"></path></svg>
+</label>
+<div class="md-header__title" data-md-component="header-title">
+<div class="md-header__ellipsis">
+<div class="md-header__topic">
+<span class="md-ellipsis">
+            Open Source Analog and Mixed-Signal Design
+          </span>
+</div>
+<div class="md-header__topic" data-md-component="header-topic">
+<span class="md-ellipsis">
+            
+              Creating a Mixed-Signal Simulation
+            
+          </span>
+</div>
+</div>
+</div>
+<form class="md-header__option" data-md-component="palette">
+<input aria-label="Switch to light mode" class="md-option" data-md-color-accent="indigo" data-md-color-media="(prefers-color-scheme)" data-md-color-primary="indigo" data-md-color-scheme="default" id="__palette_0" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_1" hidden="" title="Switch to light mode">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="m14.3 16-.7-2h-3.2l-.7 2H7.8L11 7h2l3.2 9zM20 8.69V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12zm-9.15 3.96h2.3L12 9z"></path></svg>
+</label>
+<input aria-label="Switch to dark mode" class="md-option" data-md-color-accent="amber" data-md-color-media="(prefers-color-scheme: light)" data-md-color-primary="black" data-md-color-scheme="default" id="__palette_1" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_2" hidden="" title="Switch to dark mode">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"></path></svg>
+</label>
+<input aria-label="Switch to light mode" class="md-option" data-md-color-accent="amber" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-primary="black" data-md-color-scheme="slate" id="__palette_2" name="__palette" type="radio"/>
+<label class="md-header__button md-icon" for="__palette_0" hidden="" title="Switch to light mode">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5s-1.65.15-2.39.42zM3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29zm.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14zM20.65 7l-1.77 3.79a7.02 7.02 0 0 0-2.38-4.15zm-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29zM12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44z"></path></svg>
+</label>
+</form>
+<script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+<label class="md-header__button md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+</label>
+<div class="md-search" data-md-component="search" role="dialog">
+<label class="md-search__overlay" for="__search"></label>
+<div class="md-search__inner" role="search">
+<form class="md-search__form" name="search">
+<input aria-label="Search" autocapitalize="off" autocomplete="off" autocorrect="off" class="md-search__input" data-md-component="search-query" name="query" placeholder="Search" required="" spellcheck="false" type="text"/>
+<label class="md-search__icon md-icon" for="__search">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"></path></svg>
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</label>
+<nav aria-label="Search" class="md-search__options">
+<a aria-label="Share" class="md-search__icon md-icon" data-clipboard="" data-clipboard-text="" data-md-component="search-share" href="javascript:void(0)" tabindex="-1" title="Share">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91s2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08"></path></svg>
+</a>
+<button aria-label="Clear" class="md-search__icon md-icon" tabindex="-1" title="Clear" type="reset">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"></path></svg>
+</button>
+</nav>
+<div class="md-search__suggest" data-md-component="search-suggest"></div>
+</form>
+<div class="md-search__output">
+<div class="md-search__scrollwrap" data-md-scrollfix="" tabindex="0">
+<div class="md-search-result" data-md-component="search-result">
+<div class="md-search-result__meta">
+            Initializing search
+          </div>
+<ol class="md-search-result__list" role="presentation"></ol>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="md-header__source">
+<a class="md-source" data-md-component="source" href="https://github.com/CedricHirschi/osams-docs/" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2" fill="currentColor"></path></svg>
+</div>
+<div class="md-source__repository">
+    osams-docs
+  </div>
+</a>
+</div>
+</nav>
+<nav aria-label="Tabs" class="md-tabs" data-md-component="tabs">
+<div class="md-grid">
+<ul class="md-tabs__list">
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../..">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../setup/container/">
+          
+  
+  
+  Setup
+
+        </a>
+</li>
+<li class="md-tabs__item">
+<a class="md-tabs__link" href="../../xschem/pdk_examples/">
+          
+  
+  
+  XSCHEM
+
+        </a>
+</li>
+<li class="md-tabs__item md-tabs__item--active">
+<a class="md-tabs__link" href="../intro/">
+          
+  
+  
+  Cosimulation
+
+        </a>
+</li>
+</ul>
+</div>
+</nav>
+</header>
+<div class="md-container" data-md-component="container">
+<main class="md-main" data-md-component="main">
+<div class="md-main__inner md-grid">
+<div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Navigation" class="md-nav md-nav--primary md-nav--lifted" data-md-level="0">
+<label class="md-nav__title" for="__drawer">
+<a aria-label="Open Source Analog and Mixed-Signal Design" class="md-nav__button md-logo" data-md-component="logo" href="../.." title="Open Source Analog and Mixed-Signal Design">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"></path></svg>
+</a>
+    Open Source Analog and Mixed-Signal Design
+  </label>
+<div class="md-nav__source">
+<a class="md-source" data-md-component="source" href="https://github.com/CedricHirschi/osams-docs/" title="Go to repository">
+<div class="md-source__icon md-icon">
+<svg viewbox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><!--! Font Awesome Free 7.0.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2" fill="currentColor"></path></svg>
+</div>
+<div class="md-source__repository">
+    osams-docs
+  </div>
+</a>
+</div>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../..">
+<span class="md-ellipsis">
+    Home
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+<a class="md-nav__link" href="../../setup/container/">
+<span class="md-ellipsis">
+    Setup
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--pruned md-nav__item--nested">
+<a class="md-nav__link" href="../../xschem/pdk_examples/">
+<span class="md-ellipsis">
+    XSCHEM
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+<input checked="" class="md-nav__toggle md-toggle" id="__nav_4" type="checkbox"/>
+<label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="">
+<span class="md-ellipsis">
+    Cosimulation
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<nav aria-expanded="true" aria-labelledby="__nav_4_label" class="md-nav" data-md-level="1">
+<label class="md-nav__title" for="__nav_4">
+<span class="md-nav__icon md-icon"></span>
+            Cosimulation
+          </label>
+<ul class="md-nav__list" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="../intro/">
+<span class="md-ellipsis">
+    Introduction
+    
+  </span>
+</a>
+</li>
+<li class="md-nav__item md-nav__item--active">
+<input class="md-nav__toggle md-toggle" id="__toc" type="checkbox"/>
+<label class="md-nav__link md-nav__link--active" for="__toc">
+<span class="md-ellipsis">
+    Creating a Mixed-Signal Simulation
+    
+  </span>
+<span class="md-nav__icon md-icon"></span>
+</label>
+<a class="md-nav__link md-nav__link--active" href="./">
+<span class="md-ellipsis">
+    Creating a Mixed-Signal Simulation
+    
+  </span>
+</a>
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#digital-design">
+<span class="md-ellipsis">
+      Digital Design
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#analog-design">
+<span class="md-ellipsis">
+      Analog Design
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#symbol-for-the-digital-design">
+<span class="md-ellipsis">
+      Symbol for the Digital Design
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#testbench">
+<span class="md-ellipsis">
+      Testbench
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#simulation">
+<span class="md-ellipsis">
+      Simulation
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#visualization">
+<span class="md-ellipsis">
+      Visualization
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="../bridges/">
+<span class="md-ellipsis">
+    Bridges
+    
+  </span>
+</a>
+</li>
+</ul>
+</nav>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc">
+<div class="md-sidebar__scrollwrap">
+<div class="md-sidebar__inner">
+<nav aria-label="Table of contents" class="md-nav md-nav--secondary">
+<label class="md-nav__title" for="__toc">
+<span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+<ul class="md-nav__list" data-md-component="toc" data-md-scrollfix="">
+<li class="md-nav__item">
+<a class="md-nav__link" href="#digital-design">
+<span class="md-ellipsis">
+      Digital Design
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#analog-design">
+<span class="md-ellipsis">
+      Analog Design
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#symbol-for-the-digital-design">
+<span class="md-ellipsis">
+      Symbol for the Digital Design
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#testbench">
+<span class="md-ellipsis">
+      Testbench
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#simulation">
+<span class="md-ellipsis">
+      Simulation
+    </span>
+</a>
+</li>
+<li class="md-nav__item">
+<a class="md-nav__link" href="#visualization">
+<span class="md-ellipsis">
+      Visualization
+    </span>
+</a>
+</li>
+</ul>
+</nav>
+</div>
+</div>
+</div>
+<div class="md-content" data-md-component="content">
+<article class="md-content__inner md-typeset">
+<h1>Creating a Mixed-Signal Simulation</h1>
+<p>To get a full mixed-signal simulation, we need:</p>
+<ul>
+<li>Digital design, we write it in SystemVerilog</li>
+<li>Analog design, in SPICE, designed in XSCHEM</li>
+<li>A symbol representing the digital design as a block for XSCHEM</li>
+<li>Testbench, combining both Analog and Digital designs and defining their interaction</li>
+</ul>
+<p>In our example, we create a simple PWM DAC, with digitally adjustable output voltage levels.</p>
+<h2 id="digital-design">Digital Design<a class="headerlink" href="#digital-design" title="Permanent link">¶</a></h2>
+<p>We create a simple SystemVerilog module with the following signals:</p>
+<table>
+<thead>
+<tr>
+<th>Signal Name</th>
+<th>Direction</th>
+<th>Function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>clk_i</code></td>
+<td>Input</td>
+<td>Clock signal</td>
+</tr>
+<tr>
+<td><code>rst_ni</code></td>
+<td>Input</td>
+<td>Active-low reset signal</td>
+</tr>
+<tr>
+<td><code>set_i[3:0]</code></td>
+<td>Input</td>
+<td>4-bit control signal for the duty cycle</td>
+</tr>
+<tr>
+<td><code>pwm_o</code></td>
+<td>Output</td>
+<td>PWM output signal</td>
+</tr>
+</tbody>
+</table>
+<p>The module might look something like this:
+</p><div class="language-sv highlight"><pre><span></span><code><span id="__span-0-1"><a href="#__codelineno-0-1" id="__codelineno-0-1" name="__codelineno-0-1"></a><span class="no">`timescale</span><span class="w"> </span><span class="mi">1</span><span class="n">ns</span><span class="o">/</span><span class="mi">1</span><span class="n">ps</span><span class="w"> </span><span class="c1">// (1)!</span>
+</span><span id="__span-0-2"><a href="#__codelineno-0-2" id="__codelineno-0-2" name="__codelineno-0-2"></a>
+</span><span id="__span-0-3"><a href="#__codelineno-0-3" id="__codelineno-0-3" name="__codelineno-0-3"></a><span class="k">module</span><span class="w"> </span><span class="n">pwm_dac</span><span class="w"> </span><span class="p">(</span>
+</span><span id="__span-0-4"><a href="#__codelineno-0-4" id="__codelineno-0-4" name="__codelineno-0-4"></a><span class="w">    </span><span class="k">input</span><span class="w"> </span><span class="kt">logic</span><span class="w">       </span><span class="n">clk_i</span><span class="p">,</span><span class="w">  </span><span class="c1">// Clock signal</span>
+</span><span id="__span-0-5"><a href="#__codelineno-0-5" id="__codelineno-0-5" name="__codelineno-0-5"></a><span class="w">    </span><span class="k">input</span><span class="w"> </span><span class="kt">logic</span><span class="w">       </span><span class="n">rst_ni</span><span class="p">,</span><span class="w"> </span><span class="c1">// Active-low reset signal</span>
+</span><span id="__span-0-6"><a href="#__codelineno-0-6" id="__codelineno-0-6" name="__codelineno-0-6"></a><span class="w">    </span><span class="k">input</span><span class="w"> </span><span class="kt">logic</span><span class="w"> </span><span class="p">[</span><span class="mi">3</span><span class="o">:</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="n">set_i</span><span class="p">,</span><span class="w">  </span><span class="c1">// 4-bit control signal for the duty cycle</span>
+</span><span id="__span-0-7"><a href="#__codelineno-0-7" id="__codelineno-0-7" name="__codelineno-0-7"></a>
+</span><span id="__span-0-8"><a href="#__codelineno-0-8" id="__codelineno-0-8" name="__codelineno-0-8"></a><span class="w">    </span><span class="k">output</span><span class="w"> </span><span class="kt">logic</span><span class="w">      </span><span class="n">pwm_o</span><span class="w">   </span><span class="c1">// PWM output signal</span>
+</span><span id="__span-0-9"><a href="#__codelineno-0-9" id="__codelineno-0-9" name="__codelineno-0-9"></a><span class="p">);</span>
+</span><span id="__span-0-10"><a href="#__codelineno-0-10" id="__codelineno-0-10" name="__codelineno-0-10"></a>
+</span><span id="__span-0-11"><a href="#__codelineno-0-11" id="__codelineno-0-11" name="__codelineno-0-11"></a><span class="w">    </span><span class="kt">logic</span><span class="w"> </span><span class="p">[</span><span class="mi">3</span><span class="o">:</span><span class="mi">0</span><span class="p">]</span><span class="w"> </span><span class="n">counter_d</span><span class="p">,</span><span class="w"> </span><span class="n">counter_q</span><span class="p">;</span>
+</span><span id="__span-0-12"><a href="#__codelineno-0-12" id="__codelineno-0-12" name="__codelineno-0-12"></a>
+</span><span id="__span-0-13"><a href="#__codelineno-0-13" id="__codelineno-0-13" name="__codelineno-0-13"></a><span class="w">    </span><span class="k">initial</span><span class="w"> </span><span class="k">begin</span>
+</span><span id="__span-0-14"><a href="#__codelineno-0-14" id="__codelineno-0-14" name="__codelineno-0-14"></a><span class="w">        </span><span class="p">$</span><span class="n">display</span><span class="p">(</span><span class="s">"PWM DAC digital part started"</span><span class="p">);</span><span class="w"> </span><span class="c1">// (2)!</span>
+</span><span id="__span-0-15"><a href="#__codelineno-0-15" id="__codelineno-0-15" name="__codelineno-0-15"></a><span class="w">        </span><span class="p">$</span><span class="n">dumpfile</span><span class="p">(</span><span class="s">"pwm_dac.vcd"</span><span class="p">);</span><span class="w"> </span><span class="c1">// (3)!</span>
+</span><span id="__span-0-16"><a href="#__codelineno-0-16" id="__codelineno-0-16" name="__codelineno-0-16"></a><span class="w">        </span><span class="p">$</span><span class="n">dumpvars</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="n">pwm_dac</span><span class="p">);</span>
+</span><span id="__span-0-17"><a href="#__codelineno-0-17" id="__codelineno-0-17" name="__codelineno-0-17"></a><span class="w">    </span><span class="k">end</span>
+</span><span id="__span-0-18"><a href="#__codelineno-0-18" id="__codelineno-0-18" name="__codelineno-0-18"></a>
+</span><span id="__span-0-19"><a href="#__codelineno-0-19" id="__codelineno-0-19" name="__codelineno-0-19"></a><span class="w">    </span><span class="k">always_ff</span><span class="w"> </span><span class="p">@(</span><span class="k">posedge</span><span class="w"> </span><span class="n">clk_i</span><span class="w"> </span><span class="k">or</span><span class="w"> </span><span class="k">negedge</span><span class="w"> </span><span class="n">rst_ni</span><span class="p">)</span><span class="w"> </span><span class="k">begin</span>
+</span><span id="__span-0-20"><a href="#__codelineno-0-20" id="__codelineno-0-20" name="__codelineno-0-20"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">rst_ni</span><span class="p">)</span><span class="w"> </span><span class="k">begin</span>
+</span><span id="__span-0-21"><a href="#__codelineno-0-21" id="__codelineno-0-21" name="__codelineno-0-21"></a><span class="w">            </span><span class="n">counter_q</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="m">'0</span><span class="p">;</span>
+</span><span id="__span-0-22"><a href="#__codelineno-0-22" id="__codelineno-0-22" name="__codelineno-0-22"></a><span class="w">        </span><span class="k">end</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">begin</span>
+</span><span id="__span-0-23"><a href="#__codelineno-0-23" id="__codelineno-0-23" name="__codelineno-0-23"></a><span class="w">            </span><span class="n">counter_q</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="n">counter_d</span><span class="p">;</span>
+</span><span id="__span-0-24"><a href="#__codelineno-0-24" id="__codelineno-0-24" name="__codelineno-0-24"></a><span class="w">        </span><span class="k">end</span>
+</span><span id="__span-0-25"><a href="#__codelineno-0-25" id="__codelineno-0-25" name="__codelineno-0-25"></a><span class="w">    </span><span class="k">end</span>
+</span><span id="__span-0-26"><a href="#__codelineno-0-26" id="__codelineno-0-26" name="__codelineno-0-26"></a>
+</span><span id="__span-0-27"><a href="#__codelineno-0-27" id="__codelineno-0-27" name="__codelineno-0-27"></a><span class="w">    </span><span class="k">always_comb</span><span class="w"> </span><span class="k">begin</span>
+</span><span id="__span-0-28"><a href="#__codelineno-0-28" id="__codelineno-0-28" name="__codelineno-0-28"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">rst_ni</span><span class="p">)</span><span class="w"> </span><span class="k">begin</span>
+</span><span id="__span-0-29"><a href="#__codelineno-0-29" id="__codelineno-0-29" name="__codelineno-0-29"></a><span class="w">            </span><span class="n">counter_d</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="m">'0</span><span class="p">;</span>
+</span><span id="__span-0-30"><a href="#__codelineno-0-30" id="__codelineno-0-30" name="__codelineno-0-30"></a><span class="w">        </span><span class="k">end</span><span class="w"> </span><span class="k">else</span><span class="w"> </span><span class="k">begin</span>
+</span><span id="__span-0-31"><a href="#__codelineno-0-31" id="__codelineno-0-31" name="__codelineno-0-31"></a><span class="w">            </span><span class="n">counter_d</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">counter_q</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="p">;</span>
+</span><span id="__span-0-32"><a href="#__codelineno-0-32" id="__codelineno-0-32" name="__codelineno-0-32"></a><span class="w">        </span><span class="k">end</span>
+</span><span id="__span-0-33"><a href="#__codelineno-0-33" id="__codelineno-0-33" name="__codelineno-0-33"></a><span class="w">    </span><span class="k">end</span>
+</span><span id="__span-0-34"><a href="#__codelineno-0-34" id="__codelineno-0-34" name="__codelineno-0-34"></a>
+</span><span id="__span-0-35"><a href="#__codelineno-0-35" id="__codelineno-0-35" name="__codelineno-0-35"></a><span class="w">    </span><span class="k">assign</span><span class="w"> </span><span class="n">pwm_o</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">counter_q</span><span class="w"> </span><span class="o">&lt;</span><span class="w"> </span><span class="n">set_i</span><span class="p">)</span><span class="w"> </span><span class="o">?</span><span class="w"> </span><span class="mb">1'b1</span><span class="w"> </span><span class="o">:</span><span class="w"> </span><span class="mb">1'b0</span><span class="p">;</span>
+</span><span id="__span-0-36"><a href="#__codelineno-0-36" id="__codelineno-0-36" name="__codelineno-0-36"></a>
+</span><span id="__span-0-37"><a href="#__codelineno-0-37" id="__codelineno-0-37" name="__codelineno-0-37"></a><span class="k">endmodule</span>
+</span></code></pre></div>
+<ol>
+<li><strong>Important:</strong> The <code>`timescale</code> directive is crucial for enabling cosimulation.</li>
+<li>This will get printed in the ngspice simulation log</li>
+<li>We can save the waveform data to a file for later analysis.</li>
+</ol>
+<div class="admonition danger">
+<p class="admonition-title">Danger</p>
+<p>The <code>`timescale</code> directive is crucial for enabling cosimulation. It has to be present in the top-level module used for cosimulation.</p>
+</div>
+<p>We save this code as <code>pwm_dac.sv</code> and compile it with Icarus Verilog. This is done with the following command:
+</p><div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a href="#__codelineno-1-1" id="__codelineno-1-1" name="__codelineno-1-1"></a>iverilog<span class="w"> </span>-g2012<span class="w"> </span>-o<span class="w"> </span>pwm_dac<span class="w"> </span>pwm_dac.sv
+</span></code></pre></div>
+The <code>-g2012</code> flag tells Icarus Verilog to use the SystemVerilog 2012 standard.
+<p>This gives us a compiled simulation model that we can use for testing. You can actually open the resulting <code>pwm_dac</code> file with your text editor and see that it's a script for the <code>vvp</code> tool.</p>
+<h2 id="analog-design">Analog Design<a class="headerlink" href="#analog-design" title="Permanent link">¶</a></h2>
+<p>We design a simple 1-stage RC lowpass filter. We assume the input frequency to be <span class="arithmatex">\(100\ MHz\)</span>. The resulting output frequency is thus <span class="arithmatex">\(\frac{100\ MHz}{16} = 6.25\ MHz\)</span>. We put the corner frequency of the filter two decades lower, at <span class="arithmatex">\(62.5\ kHz\)</span>. With <span class="arithmatex">\(R = 100\ k\Omega\)</span>, we need <span class="arithmatex">\(C = \frac{1}{2\pi f_c R} \approx 25.5\ pF\)</span>.</p>
+<p>We implement the circuit in the testbench <code>pwm_dac_tb.sch</code> directly via
+</p><div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a href="#__codelineno-2-1" id="__codelineno-2-1" name="__codelineno-2-1"></a>xschem<span class="w"> </span>pwm_dac_tb.sch
+</span></code></pre></div>
+<details class="info">
+<summary>The resulting circuit looks something like this</summary>
+<p><a class="glightbox" data-desc-position="bottom" data-height="auto" data-type="image" data-width="auto" href="../assets/rc_lowpass.svg"><img alt="Lowpass Circuit" src="../assets/rc_lowpass.svg"/></a></p>
+</details>
+<h2 id="symbol-for-the-digital-design">Symbol for the Digital Design<a class="headerlink" href="#symbol-for-the-digital-design" title="Permanent link">¶</a></h2>
+<p>We need to create a symbol for the digital design that we can use in the testbench. This symbol should represent the inputs and outputs of the <code>pwm_dac</code> module. Create a new symbol with
+</p><div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a href="#__codelineno-3-1" id="__codelineno-3-1" name="__codelineno-3-1"></a>xschem<span class="w"> </span>pwm_dac.sym
+</span></code></pre></div>
+Directly after opening, please save the symbol via <code>File -&gt; Save as symbol</code> (or <code>Ctrl + Alt + S</code>). This ensures that the symbol properties are properly setup.
+<p>Now, we first configure these properties by double-clicking the emtpy canvas. This opens an empty text input where we enter:
+</p><div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a href="#__codelineno-4-1" id="__codelineno-4-1" name="__codelineno-4-1"></a>type=primitive
+</span><span id="__span-4-2"><a href="#__codelineno-4-2" id="__codelineno-4-2" name="__codelineno-4-2"></a>format="@name [ @@clk_i @@rst_ni @@set_i[3..0] ] [ @@pwm_o ] @model"
+</span><span id="__span-4-3"><a href="#__codelineno-4-3" id="__codelineno-4-3" name="__codelineno-4-3"></a>template="name=A1 model=pwm_dac device_model=\".model pwm_dac d_cosim simulation=\\\"ivlng\\\" sim_args=[\\\"pwm_dac\\\"]\""
+</span></code></pre></div>
+This defines:
+<ul>
+<li>The type of the symbol (<code>primitive</code>, other options include <code>subcircuit</code> for actual circuits)</li>
+<li>The format of the circuit. This has to be very specific:<ol>
+<li><code>@name</code>: The name of the instance in the schematic (e.g., <code>A1</code>)</li>
+<li><code>[ @@clk_i @@rst_ni @@set_i[3..0] ]</code>: The input ports of the instance</li>
+<li><code>[ @@pwm_o ]</code>: The output ports of the instance</li>
+<li><code>@model</code>: The model name of the instance (e.g., <code>pwm_dac</code>)</li>
+</ol>
+</li>
+<li>The template for the instance. This defines how the instance will be instantiated in the schematic. <ol>
+<li><code>A1</code>: The name template the block will use in the schematic.</li>
+<li><code>pwm_dac</code>: The cosimulation model this block uses.</li>
+<li><code>device_model</code>: The device model for the block, including the simulation command/arguments.</li>
+</ol>
+</li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The spaces in the input/output ports list are significant and <strong>must be preserved</strong>.</p>
+<p>This is invalid and will not work:
+</p><div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a href="#__codelineno-5-1" id="__codelineno-5-1" name="__codelineno-5-1"></a>@name [@@clk_i @@rst_ni @@set_i[3..0]] [@@pwm_o] @model
+</span></code></pre></div>
+This will:
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a href="#__codelineno-6-1" id="__codelineno-6-1" name="__codelineno-6-1"></a>@name [ @@clk_i @@rst_ni @@set_i[3..0] ] [ @@pwm_o ] @model
+</span></code></pre></div>
+<p><strong>Also</strong>, the order of the ports in each list must match the definition in the verilog module.</p>
+</div>
+<p>Now, we place the pins of the symbol in the schematic. Do this via <code>Symbol -&gt; Place symbol pin</code> (<code>Alt + P</code>). Make sure to set the correct name and direction (<code>in</code>, <code>out</code> or <code>inout</code>) for each pin.</p>
+<details class="info">
+<summary>The resulting symbol might look something like this</summary>
+<p><a class="glightbox" data-desc-position="bottom" data-height="auto" data-type="image" data-width="auto" href="../assets/pwm_dac_symbol.svg"><img alt="PWM DAC Symbol" src="../assets/pwm_dac_symbol.svg"/></a>
+The <code>@symname</code> and <code>@name</code> texts are placeholders that will be replaced with the actual symbol and instance names when the schematic is instantiated. You can leave them out.</p>
+</details>
+<h2 id="testbench">Testbench<a class="headerlink" href="#testbench" title="Permanent link">¶</a></h2>
+<p>Now, we go back to the testbench
+</p><div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a href="#__codelineno-7-1" id="__codelineno-7-1" name="__codelineno-7-1"></a>xschem<span class="w"> </span>pwm_dac_tb.sch
+</span></code></pre></div>
+<p>Place our <code>pwm_dac.sym</code> symbol into the schematic. Now, we need to specify the cosimulation model for the PWM DAC. We can do this in this symbols properties directly. When you open the symbols properties by double-clicking it, you should be able to see the name and model properties. On a new line, add the following:
+</p><div class="language-spice highlight"><pre><span></span><code><span id="__span-8-1"><a href="#__codelineno-8-1" id="__codelineno-8-1" name="__codelineno-8-1"></a><span class="nx">device_model</span><span class="p">=</span><span class="s">".model pwm_dac d_cosim simulation=\"ivlng\" sim_args=[\"../pwm_dac\"]"</span>
+</span></code></pre></div>
+The <code>device_model</code> property specifies the model name and the simulation parameters for the PWM DAC. This tells ngspice to use the <code>ivlng</code> simulation method with the specified arguments.
+<p>Now we can hook up the output up to the lowpass filter. Also place voltage sources to input the clock and reset signals, as well as the control inputs. Single signals from a bus can be accessed via the <code>a0 up to a3</code> labels if you have a <code>a[3..0]</code> label.</p>
+<p>The control inputs <code>set_i0 to set_i3</code> are each connected to their own voltage source so that we can simulate a simple changing digital input. A simple example would be the following:</p>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>set_i0</code></td>
+<td>Logic high (bit 0)</td>
+</tr>
+<tr>
+<td><code>set_i1</code></td>
+<td>Logic high (bit 1)</td>
+</tr>
+<tr>
+<td><code>set_i2</code></td>
+<td>Transition from low to high at 15μs (bit 2)</td>
+</tr>
+<tr>
+<td><code>set_i3</code></td>
+<td>Logic low (bit 3)</td>
+</tr>
+</tbody>
+</table>
+<p>With this, we simulate a simple step from input code 0x03 to 0x07 at 15us, such that we can observe the behavior of the PWM DAC.</p>
+<p>Add the device models and simulation commands/launcher. For the simulation commands, we use the following:
+</p><div class="language-spice highlight"><pre><span></span><code><span id="__span-9-1"><a href="#__codelineno-9-1" id="__codelineno-9-1" name="__codelineno-9-1"></a><span class="p">.</span><span class="nx">include</span><span class="w"> </span><span class="nx">pwm_dac_tb</span><span class="p">.</span><span class="nx">save</span>
+</span><span id="__span-9-2"><a href="#__codelineno-9-2" id="__codelineno-9-2" name="__codelineno-9-2"></a><span class="p">.</span><span class="nx">param</span><span class="w"> </span><span class="nx">temp</span><span class="p">=</span><span class="mi">27</span>
+</span><span id="__span-9-3"><a href="#__codelineno-9-3" id="__codelineno-9-3" name="__codelineno-9-3"></a><span class="p">.</span><span class="nx">param</span><span class="w"> </span><span class="nx">VCC</span><span class="p">=</span><span class="m m-Double">1.5</span>
+</span><span id="__span-9-4"><a href="#__codelineno-9-4" id="__codelineno-9-4" name="__codelineno-9-4"></a><span class="p">.</span><span class="nx">control</span>
+</span><span id="__span-9-5"><a href="#__codelineno-9-5" id="__codelineno-9-5" name="__codelineno-9-5"></a><span class="nx">save</span><span class="w"> </span><span class="nx">all</span>
+</span><span id="__span-9-6"><a href="#__codelineno-9-6" id="__codelineno-9-6" name="__codelineno-9-6"></a><span class="nx">tran</span><span class="w"> </span><span class="mi">10</span><span class="nx">n</span><span class="w"> </span><span class="mi">10u</span>
+</span><span id="__span-9-7"><a href="#__codelineno-9-7" id="__codelineno-9-7" name="__codelineno-9-7"></a><span class="nx">write</span><span class="w"> </span><span class="nx">pwm_dac_tb</span><span class="p">.</span><span class="nx">raw</span>
+</span></code></pre></div>
+Here, the important part is <code>VCC</code>. This defines the logic levels for the digital-&gt;analog and analog-&gt;digital bridges. These bridges can be set up more sophisticated (See <a href="../bridges/">Bridges</a>), but for now we just set <code>VCC</code> to our vdd, 1.5V. Also, we set the simulation time to 10 microseconds with a timestep of 10 nanoseconds and to save all data to <code>pwm_dac_tb.raw</code>.
+<p>Also add a waveform loader and two graphs.</p>
+<details class="info">
+<summary>The resulting testbench might look something like this</summary>
+<p><a class="glightbox" data-desc-position="bottom" data-height="auto" data-type="image" data-width="auto" href="../assets/pwm_dac_tb.svg"><img alt="PWM DAC Testbench" src="../assets/pwm_dac_tb.svg"/></a></p>
+</details>
+<h2 id="simulation">Simulation<a class="headerlink" href="#simulation" title="Permanent link">¶</a></h2>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>Make sure you set up XSCHEM as described in the <a href="../../setup/xschem/">XSCHEM Setup</a> documentation. This is crucial for enabling cosimulation with ngspice.</p>
+</div>
+<p>We can then run the simulation with the simulation launcher. You should see such an output:
+</p><div class="language-text highlight"><pre><span></span><code><span id="__span-10-1"><a href="#__codelineno-10-1" id="__codelineno-10-1" name="__codelineno-10-1"></a>******
+</span><span id="__span-10-2"><a href="#__codelineno-10-2" id="__codelineno-10-2" name="__codelineno-10-2"></a>** ngspice-44.2 : Circuit level simulation program
+</span><span id="__span-10-3"><a href="#__codelineno-10-3" id="__codelineno-10-3" name="__codelineno-10-3"></a>** Compiled with KLU Direct Linear Solver
+</span><span id="__span-10-4"><a href="#__codelineno-10-4" id="__codelineno-10-4" name="__codelineno-10-4"></a>** The U. C. Berkeley CAD Group
+</span><span id="__span-10-5"><a href="#__codelineno-10-5" id="__codelineno-10-5" name="__codelineno-10-5"></a>** Copyright 1985-1994, Regents of the University of California.
+</span><span id="__span-10-6"><a href="#__codelineno-10-6" id="__codelineno-10-6" name="__codelineno-10-6"></a>** Copyright 2001-2024, The ngspice team.
+</span><span id="__span-10-7"><a href="#__codelineno-10-7" id="__codelineno-10-7" name="__codelineno-10-7"></a>** Please get your ngspice manual from https://ngspice.sourceforge.io/docs.html
+</span><span id="__span-10-8"><a href="#__codelineno-10-8" id="__codelineno-10-8" name="__codelineno-10-8"></a>** Please file your bug-reports at http://ngspice.sourceforge.net/bugrep.html
+</span><span id="__span-10-9"><a href="#__codelineno-10-9" id="__codelineno-10-9" name="__codelineno-10-9"></a>** Creation Date: Tue Jul 29 08:21:22 UTC 2025
+</span><span id="__span-10-10"><a href="#__codelineno-10-10" id="__codelineno-10-10" name="__codelineno-10-10"></a>******
+</span><span id="__span-10-11"><a href="#__codelineno-10-11" id="__codelineno-10-11" name="__codelineno-10-11"></a>
+</span><span id="__span-10-12"><a href="#__codelineno-10-12" id="__codelineno-10-12" name="__codelineno-10-12"></a>Note: No compatibility mode selected!
+</span><span id="__span-10-13"><a href="#__codelineno-10-13" id="__codelineno-10-13" name="__codelineno-10-13"></a>
+</span><span id="__span-10-14"><a href="#__codelineno-10-14" id="__codelineno-10-14" name="__codelineno-10-14"></a>Circuit: ** sch_path: /workspaces/oscic-playground/cosim/pwm_dac_tb.sch
+</span><span id="__span-10-15"><a href="#__codelineno-10-15" id="__codelineno-10-15" name="__codelineno-10-15"></a>
+</span><span id="__span-10-16"><a href="#__codelineno-10-16" id="__codelineno-10-16" name="__codelineno-10-16"></a>Note: No compatibility mode selected!
+</span><span id="__span-10-17"><a href="#__codelineno-10-17" id="__codelineno-10-17" name="__codelineno-10-17"></a>
+</span><span id="__span-10-18"><a href="#__codelineno-10-18" id="__codelineno-10-18" name="__codelineno-10-18"></a>Reducing trtol to 1 for xspice 'A' devices
+</span><span id="__span-10-19"><a href="#__codelineno-10-19" id="__codelineno-10-19" name="__codelineno-10-19"></a>Doing analysis at TEMP = 27.000000 and TNOM = 27.000000
+</span><span id="__span-10-20"><a href="#__codelineno-10-20" id="__codelineno-10-20" name="__codelineno-10-20"></a>
+</span><span id="__span-10-21"><a href="#__codelineno-10-21" id="__codelineno-10-21" name="__codelineno-10-21"></a>Using SPARSE 1.3 as Direct Linear Solver
+</span><span id="__span-10-22"><a href="#__codelineno-10-22" id="__codelineno-10-22" name="__codelineno-10-22"></a>
+</span><span id="__span-10-23"><a href="#__codelineno-10-23" id="__codelineno-10-23" name="__codelineno-10-23"></a>Initial Transient Solution
+</span><span id="__span-10-24"><a href="#__codelineno-10-24" id="__codelineno-10-24" name="__codelineno-10-24"></a>--------------------------
+</span><span id="__span-10-25"><a href="#__codelineno-10-25" id="__codelineno-10-25" name="__codelineno-10-25"></a>
+</span><span id="__span-10-26"><a href="#__codelineno-10-26" id="__codelineno-10-26" name="__codelineno-10-26"></a>Node                      Voltage
+</span><span id="__span-10-27"><a href="#__codelineno-10-27" id="__codelineno-10-27" name="__codelineno-10-27"></a>----                      -------
+</span><span id="__span-10-28"><a href="#__codelineno-10-28" id="__codelineno-10-28" name="__codelineno-10-28"></a>out                       0
+</span><span id="__span-10-29"><a href="#__codelineno-10-29" id="__codelineno-10-29" name="__codelineno-10-29"></a>unfilt                    0
+</span><span id="__span-10-30"><a href="#__codelineno-10-30" id="__codelineno-10-30" name="__codelineno-10-30"></a>clk                       0
+</span><span id="__span-10-31"><a href="#__codelineno-10-31" id="__codelineno-10-31" name="__codelineno-10-31"></a>rst                       1.5
+</span><span id="__span-10-32"><a href="#__codelineno-10-32" id="__codelineno-10-32" name="__codelineno-10-32"></a>vdd                       1.5
+</span><span id="__span-10-33"><a href="#__codelineno-10-33" id="__codelineno-10-33" name="__codelineno-10-33"></a>vss                       0
+</span><span id="__span-10-34"><a href="#__codelineno-10-34" id="__codelineno-10-34" name="__codelineno-10-34"></a>set0                      1.5
+</span><span id="__span-10-35"><a href="#__codelineno-10-35" id="__codelineno-10-35" name="__codelineno-10-35"></a>set1                      1.5
+</span><span id="__span-10-36"><a href="#__codelineno-10-36" id="__codelineno-10-36" name="__codelineno-10-36"></a>set2                      1.5
+</span><span id="__span-10-37"><a href="#__codelineno-10-37" id="__codelineno-10-37" name="__codelineno-10-37"></a>set3                      0
+</span><span id="__span-10-38"><a href="#__codelineno-10-38" id="__codelineno-10-38" name="__codelineno-10-38"></a>v#branch                  0
+</span><span id="__span-10-39"><a href="#__codelineno-10-39" id="__codelineno-10-39" name="__codelineno-10-39"></a>v7#branch                 0
+</span><span id="__span-10-40"><a href="#__codelineno-10-40" id="__codelineno-10-40" name="__codelineno-10-40"></a>v6#branch                 0
+</span><span id="__span-10-41"><a href="#__codelineno-10-41" id="__codelineno-10-41" name="__codelineno-10-41"></a>v5#branch                 0
+</span><span id="__span-10-42"><a href="#__codelineno-10-42" id="__codelineno-10-42" name="__codelineno-10-42"></a>v4#branch                 0
+</span><span id="__span-10-43"><a href="#__codelineno-10-43" id="__codelineno-10-43" name="__codelineno-10-43"></a>v3#branch                 0
+</span><span id="__span-10-44"><a href="#__codelineno-10-44" id="__codelineno-10-44" name="__codelineno-10-44"></a>v2#branch                 0
+</span><span id="__span-10-45"><a href="#__codelineno-10-45" id="__codelineno-10-45" name="__codelineno-10-45"></a>v1#branch                 0
+</span><span id="__span-10-46"><a href="#__codelineno-10-46" id="__codelineno-10-46" name="__codelineno-10-46"></a>auto_dac#branch_1_0       0
+</span><span id="__span-10-47"><a href="#__codelineno-10-47" id="__codelineno-10-47" name="__codelineno-10-47"></a>
+</span><span id="__span-10-48"><a href="#__codelineno-10-48" id="__codelineno-10-48" name="__codelineno-10-48"></a>PWM DAC digital part started
+</span><span id="__span-10-49"><a href="#__codelineno-10-49" id="__codelineno-10-49" name="__codelineno-10-49"></a>VCD info: dumpfile pwm_dac.vcd opened for output.
+</span><span id="__span-10-50"><a href="#__codelineno-10-50" id="__codelineno-10-50" name="__codelineno-10-50"></a> Reference value 9_95157e-06
+</span><span id="__span-10-51"><a href="#__codelineno-10-51" id="__codelineno-10-51" name="__codelineno-10-51"></a>No. of Data Rows : 205255
+</span><span id="__span-10-52"><a href="#__codelineno-10-52" id="__codelineno-10-52" name="__codelineno-10-52"></a>binary raw file "pwm_dac_tb.raw"
+</span><span id="__span-10-53"><a href="#__codelineno-10-53" id="__codelineno-10-53" name="__codelineno-10-53"></a>ngspice 1 -&gt;
+</span></code></pre></div>
+You can see the <code>PWM DAC digital part started</code> and <code>VCD info: dumpfile pwm_dac.vcd opened for output.</code> which indicate that the digital part of the simulation is running properly!
+<h2 id="visualization">Visualization<a class="headerlink" href="#visualization" title="Permanent link">¶</a></h2>
+<p>XSCHEM's built in graphs already include a handy way to display digital and analog signals concurrently. We use one of our graphs for the digital signals and one for the analog signals.</p>
+<p>In the graph for the analog signals, add the <code>unfilt</code> and <code>out</code> signals. The settings can remain the default.</p>
+<p>In the graph for the digital signals, add the <code>clk</code>, <code>rst</code> signals as well as <code>set;set3,set2,set1,set0</code>, which allows us to look at the <code>set</code> signals as a bus.</p>
+<details class="info">
+<summary>The resulting plots might look something like this</summary>
+<p><a class="glightbox" data-desc-position="bottom" data-height="auto" data-type="image" data-width="auto" href="../assets/pwm_dac_tb_plot.svg"><img alt="PWM DAC Testbench Plots" src="../assets/pwm_dac_tb_plot.svg"/></a></p>
+</details>
+<div class="admonition success">
+<p class="admonition-title">Success</p>
+<p>We can see that our simple PWM DAC example works as expected.</p>
+</div>
+<div class="admonition tip">
+<p class="admonition-title">Tip</p>
+<p>Now, you can also open the .vcd file in a waveform viewer to inspect the digital part more closely.</p>
+</div>
+</article>
+</div>
+<script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+</div>
+<button class="md-top md-icon" data-md-component="top" hidden="" type="button">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"></path></svg>
+  Back to top
+</button>
+</main>
+<footer class="md-footer">
+<nav aria-label="Footer" class="md-footer__inner md-grid">
+<a aria-label="Previous: Introduction" class="md-footer__link md-footer__link--prev" href="../intro/">
+<div class="md-footer__button md-icon">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"></path></svg>
+</div>
+<div class="md-footer__title">
+<span class="md-footer__direction">
+                Previous
+              </span>
+<div class="md-ellipsis">
+                Introduction
+              </div>
+</div>
+</a>
+<a aria-label="Next: Bridges" class="md-footer__link md-footer__link--next" href="../bridges/">
+<div class="md-footer__title">
+<span class="md-footer__direction">
+                Next
+              </span>
+<div class="md-ellipsis">
+                Bridges
+              </div>
+</div>
+<div class="md-footer__button md-icon">
+<svg viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11z"></path></svg>
+</div>
+</a>
+</nav>
+<div class="md-footer-meta md-typeset">
+<div class="md-footer-meta__inner md-grid">
+<div class="md-copyright">
+<div class="md-copyright__highlight">
+      Copyright © 2025 <a href="mailto:cehirschi@student.ethz.ch">Cedric Hirschi</a>
+</div>
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" rel="noopener" target="_blank">
+      Material for MkDocs
+    </a>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<div class="md-dialog" data-md-component="dialog">
+<div class="md-dialog__inner md-typeset"></div>
+</div>
+<div class="md-progress" data-md-component="progress" role="progressbar"></div>
+<script id="__config" type="application/json">{"base": "../..", "features": ["navigation.instant", "navigation.instant.progress", "navigation.tracking", "navigation.tabs", "navigation.tabs.sticky", "navigation.path", "navigation.prune", "toc.follow", "navigation.top", "search.suggest", "search.highlight", "search.share", "header.autohide", "navigation.footer", "content.code.copy", "content.code.annotate", "content.tabs.link", "content.tooltips"], "search": "../../assets/javascripts/workers/search.973d3a69.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+<script src="../../assets/javascripts/bundle.92b07e13.min.js"></script>
+<script src="../../javascripts/mathjax.js"></script>
+<script src="https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js"></script>
+<script id="init-glightbox">const lightbox = GLightbox({"touchNavigation": true, "loop": false, "zoomable": true, "draggable": true, "openEffect": "zoom", "closeEffect": "zoom", "slideEffect": "slide"});
+document$.subscribe(() => { lightbox.reload() });
+</script></body>
+</html>
