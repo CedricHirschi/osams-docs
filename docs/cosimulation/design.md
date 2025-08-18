@@ -134,12 +134,6 @@ Now, we place the pins of the symbol in the schematic. Do this via `Symbol -> Pl
     The `@symname` and `@name` texts are placeholders that will be replaced with the actual symbol and instance names when the schematic is instantiated. You can leave them out.
 
 
-I have written a small web tool to generate XSCHEM symbols from (System)Verilog modules. You can access it here:
-
-[XSCHEM Symbol Generator](./symbol_gen.html){ .md-button }
-
-[YOSYS Online Playground](./yosys_online.html){ .md-button }
-
 ## Testbench
 
 Now, we go back to the testbench

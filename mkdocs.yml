@@ -1,9 +1,9 @@
 site_name: Open Source Analog and Mixed-Signal Design
 site_description: Introduction to Open Source Analog and Mixed-Signal (AMS) Design
 site_author: Cedric Hirschi
-site_url: https://CedricHirschi.github.io/osams_docs/
-repo_name: osams_docs
-repo_url: https://github.com/CedricHirschi/osams_docs/
+site_url: https://CedricHirschi.github.io/osams-docs/
+repo_name: osams-docs
+repo_url: https://github.com/CedricHirschi/osams-docs/
 
 nav:
   - Home: index.md

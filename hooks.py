@@ -21,5 +21,5 @@ def copy_file_safe(config: MkDocsConfig, dir: str, filename: str):
         log.warning(f"{source_file} not found")
 
 def on_post_build(config: MkDocsConfig, **kwargs):
-    copy_file_safe(config, 'cosimulation', 'symbol_gen.html')
-    copy_file_safe(config, 'cosimulation', 'yosys_online.html')
+    copy_file_safe(config, 'tools', 'symbol_gen.html')
+    copy_file_safe(config, 'tools', 'yosys_online.html')
